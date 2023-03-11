@@ -1,30 +1,22 @@
-import { FocusNode, useFocusStoreDangerously } from '@please/lrud';
-import { useEffect } from 'react';
+import { FocusNode } from '@please/lrud';
 import './app.css';
+import { BoundaryListener } from './BoundaryListener';
 
-function BoundaryListener({ callback }) {
-  const focusStore = useFocusStoreDangerously();
-
-  useEffect(() => {
-    const origFocusStoreHandleArrow = focusStore.handleArrow;
-    focusStore.handleArrow = (arrow) => {
-      const currentFocusedNodeId = focusStore.getState().focusedNodeId;
-      const originalReturn = origFocusStoreHandleArrow(arrow);
-      const finalState = focusStore.getState();
-      const finalFocusedNodeId = finalState.focusedNodeId;
-
-      if (currentFocusedNodeId === finalFocusedNodeId) {
-        const node = finalState.nodes[finalFocusedNodeId];
-        callback({ node, arrow });
-      }
-
-      return originalReturn;
-    };
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return null;
+function InnerApp() {
+  return (
+    <>
+      <FocusNode className="block-container block-container-horizontal">
+        <FocusNode className="block">One</FocusNode>
+        <FocusNode className="block">Two</FocusNode>
+        <FocusNode className="block">Three</FocusNode>
+      </FocusNode>
+      <BoundaryListener
+        callback={({ node, arrow }) => {
+          console.log(node, arrow, '2nd');
+        }}
+      />
+    </>
+  );
 }
 
 export default function App() {
@@ -47,17 +39,13 @@ export default function App() {
           <FocusNode className="block">Three</FocusNode>
         </FocusNode>
 
-        <FocusNode className="block-container block-container-horizontal">
-          <FocusNode className="block">One</FocusNode>
-          <FocusNode className="block">Two</FocusNode>
-          <FocusNode className="block">Three</FocusNode>
-        </FocusNode>
+        <InnerApp />
+        <BoundaryListener
+          callback={({ node, arrow }) => {
+            console.log(node, arrow, '1st');
+          }}
+        />
       </FocusNode>
-      <BoundaryListener
-        callback={({ node, arrow }) => {
-          console.log(node, arrow);
-        }}
-      />
     </>
   );
 }
