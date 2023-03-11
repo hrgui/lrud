@@ -1,70 +1,28 @@
-import { FocusNode, useLeafFocusedNode } from '@please/lrud';
+import { FocusNode, useFocusStoreDangerously } from '@please/lrud';
 import { useEffect } from 'react';
 import './app.css';
 
-// This maps a Key string, returned from an event, to a handler name.
-export const keyToBindingMap = {
-  ArrowUp: 'up',
-  ArrowDown: 'down',
-  ArrowLeft: 'left',
-  ArrowRight: 'right',
-};
-
-// This maps a KeyCode num value, returned from an event, to a handler name.
-export const keyCodeToBindingMap = {
-  38: keyToBindingMap.ArrowUp,
-  40: keyToBindingMap.ArrowDown,
-  37: keyToBindingMap.ArrowLeft,
-  39: keyToBindingMap.ArrowRight,
-};
-
-function useLRUD(mapping = {}) {
-  const keydownHandler = function (e) {
-    const bindingName =
-      keyToBindingMap[e.key] || keyCodeToBindingMap[e.keyCode];
-    const binding = mapping[bindingName];
-
-    if (typeof binding === 'function') {
-      e.preventDefault();
-      e.stopPropagation();
-
-      binding();
-    }
-  };
-
-  function subscribe() {
-    window.addEventListener('keydown', keydownHandler);
-  }
-
-  function unsubscribe() {
-    window.removeEventListener('keydown', keydownHandler);
-  }
+function BoundaryListener({ callback }) {
+  const focusStore = useFocusStoreDangerously();
 
   useEffect(() => {
-    subscribe();
-    return () => unsubscribe();
-  });
-}
+    const origFocusStoreHandleArrow = focusStore.handleArrow;
+    focusStore.handleArrow = (arrow) => {
+      const currentFocusedNodeId = focusStore.getState().focusedNodeId;
+      const originalReturn = origFocusStoreHandleArrow(arrow);
+      const finalState = focusStore.getState();
+      const finalFocusedNodeId = finalState.focusedNodeId;
 
-function BoundaryListener() {
-  // if the leaf focused node changes
-  // then the LRUD events won't trigger
-  useLeafFocusedNode();
+      if (currentFocusedNodeId === finalFocusedNodeId) {
+        const node = finalState.nodes[finalFocusedNodeId];
+        callback({ node, arrow });
+      }
 
-  useLRUD({
-    up() {
-      console.log('up');
-    },
-    left() {
-      console.log('left');
-    },
-    right() {
-      console.log('right');
-    },
-    down() {
-      console.log('down');
-    },
-  });
+      return originalReturn;
+    };
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return null;
 }
@@ -95,7 +53,11 @@ export default function App() {
           <FocusNode className="block">Three</FocusNode>
         </FocusNode>
       </FocusNode>
-      <BoundaryListener />
+      <BoundaryListener
+        callback={({ node, arrow }) => {
+          console.log(node, arrow);
+        }}
+      />
     </>
   );
 }
